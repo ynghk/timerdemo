@@ -8,39 +8,24 @@
 import SwiftUI
 import AVFoundation
 
-struct AlwaysOnTopView: NSViewRepresentable {
-    let window: NSWindow
-    let isAlwaysOnTop: Bool
-    
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        return view
-    }
-    
-    func updateNSView(_ nsView: NSView, context: Context) {
-        if isAlwaysOnTop {
-            window.level = .floating
-        } else {
-            window.level = .normal
-        }
-    }
-}
-
 struct TimerPicker: View {
+    
+    @Environment(\.dismiss) private var dismiss
+    
     @Binding var hours: Int
     @Binding var minutes: Int
     @Binding var seconds: Int
-    
-    @State private var timeRemaining = 0
-    @State private var startTime = 0
+    @State private var timeRemaining = 60
+    @State private var startTime = 60
+    @State private var customTimeSet = false
     @State private var twentyFourHours = 86400
     @State private var isReset = false
     @State private var isRunning: Bool = false
-    @State private var widthValue: CGFloat = 100
     @State private var set24Hours = false
-    @State private var isOnTop = true
-    
+    @State private var isOnTop = false
     @State private var showingSetTimer = false
+    @State private var tenSeconds = 10
+    @State private var thirtySeconds = 30
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -61,37 +46,34 @@ struct TimerPicker: View {
         VStack {
             HStack {
                 Button(action: {
+                    showingSetTimer.toggle()
+                }) {
+                    Image(systemName: "plus.square")
+                        .resizable()
+                        .frame(width: 10, height: 10)
+                    
+                }
+                Button(action: {
                     isRunning.toggle()
                 }) {
                     Image(systemName: isRunning ? "pause.fill" : "play.fill")
                         .resizable()
-                        .frame(width: 20, height: 20)
-                        .padding()
+                        .frame(width: 10, height: 10)
+                    
                 }
                 Button(action: {
-                    isReset.toggle()
-                    timeRemaining = startTime
+                    setTimer()
                     isRunning = false
                 }) {
                     Image(systemName: "arrow.trianglehead.clockwise")
                         .resizable()
-                        .frame(width: 20, height: 20)
-                        .padding()
-                }
-                Button(action: {
-                    showingSetTimer = true
-//                    set24Hours.toggle()
-//                    timeRemaining = twentyFourHours
-                }) {
-                    Image(systemName: "24.square.fill")
-                        .resizable()
-                        .frame(width: 20, height: 20)
-                        .padding()
+                        .frame(width: 10, height: 10)
+                    
                 }
             }
         }
         .sheet(isPresented: $showingSetTimer) {
-            VStack {
+            VStack{
                 HStack {
                     HStack {
                         Picker("Hours", selection: $hours) {
@@ -125,6 +107,9 @@ struct TimerPicker: View {
                         hours = 0
                         minutes = 0
                         seconds = 0
+                        customTimeSet = false
+                        timeRemaining = 60
+                        startTime = 60
                     }) {
                         Image(systemName: "gobackward")
                             .foregroundColor(.white)
@@ -139,32 +124,42 @@ struct TimerPicker: View {
                             .cornerRadius(5)
                             .font(.title)
                             .clipped()
-                    }.buttonStyle(.plain)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
+        
         .onReceive(timer) { _ in
             if isRunning && timeRemaining > 0 {
                 timeRemaining -= 1
-                if widthValue > 0 && startTime > 0 {
-                    widthValue -= 100 / CGFloat(startTime)
-                }
                 if timeRemaining <= 10 {
                     NSSound.beep()
                 }
             } else if isRunning {
                 isRunning = false
-                widthValue = 100
-                timeRemaining = startTime
+                if customTimeSet {
+                    timeRemaining = startTime
+                } else {
+                    timeRemaining = 60
+                    startTime = 60
+                }
             }
         }
     }
     func setTimer() {
         let totalSeconds = hours * 3600 + minutes * 60 + seconds
-        timeRemaining = totalSeconds
-        startTime = totalSeconds
+        if totalSeconds > 0 {
+            timeRemaining = totalSeconds
+            startTime = totalSeconds
+            customTimeSet = true
+        } else {
+            timeRemaining = 60
+            startTime = 60
+            customTimeSet = false
+        }
+
         isRunning = false
-        widthValue = 100
         showingSetTimer = false
     }
 }
@@ -178,12 +173,28 @@ struct ContentView: View {
     
     var body: some View {
         VStack(alignment: .center, spacing: 0) {
-            
             TimerPicker(hours: $hours, minutes: $minutes, seconds: $seconds)
+        }
+        .frame(width: 400, height: 200)
+    }
+    struct AlwaysOnTopView: NSViewRepresentable {
+        let window: NSWindow
+        let isAlwaysOnTop: Bool
+        
+        func makeNSView(context: Context) -> NSView {
+            let view = NSView()
+            return view
+        }
+        
+        func updateNSView(_ nsView: NSView, context: Context) {
+            if isAlwaysOnTop {
+                window.level = .floating
+            } else {
+                window.level = .normal
+            }
         }
     }
 }
-
 #Preview {
     ContentView()
 }
