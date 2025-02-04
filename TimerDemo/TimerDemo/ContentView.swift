@@ -9,8 +9,6 @@ import SwiftUI
 import AVFoundation
 
 
-
-
 struct ContentView: View {
     
     @State private var hours = 0
@@ -23,6 +21,8 @@ struct ContentView: View {
         }
         .frame(width: 400, height: 200)
     }
+    
+    //AlwaysOnTopView 구현해보기
     struct AlwaysOnTopView: NSViewRepresentable {
         let window: NSWindow
         let isAlwaysOnTop: Bool
